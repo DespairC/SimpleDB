@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Catalog {
 
     // 所有表
+    // key 为 文件 file 的绝对路径生成的 hashcode()
     private final ConcurrentHashMap<Integer, Table> hashTable;
 
     /**

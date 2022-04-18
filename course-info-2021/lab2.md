@@ -1,3 +1,5 @@
+
+
 # 6.830 Lab 2: SimpleDB Operators
 
 **Assigned: Tue, Mar 9, 2021**<br>
@@ -14,12 +16,10 @@ Version History:
 
 
 In this lab assignment, you will write a set of operators for SimpleDB to implement table modifications (e.g., insert
-and delete records), selections, joins, and aggregates. These will build on top of the foundation that you wrote in Lab
-1 to provide you with a database system that can perform simple queries over multiple tables.
+and delete records), selections, joins, and aggregates（总计）. These will build on top of the foundation（基础）that you wrote in Lab1 to provide you with a database system that can perform simple queries over multiple tables.
 
 Additionally, we ignored the issue of buffer pool management in Lab 1: we have not dealt with the problem that arises
-when we reference more pages than we can fit in memory over the lifetime of the database. In Lab 2, you will design an
-eviction policy to flush stale pages from the buffer pool.
+when we reference more pages than we can fit in memory over the lifetime of the database. In Lab 2, you will design an eviction policy to flush stale pages from the buffer pool.
 
 You do not need to implement transactions or locking in this lab.
 
@@ -140,14 +140,14 @@ operators that will enable you to perform queries that are slightly more interes
 
 Implement the skeleton methods in:
 
-***  
+***
 
 * src/java/simpledb/execution/Predicate.java
 * src/java/simpledb/execution/JoinPredicate.java
 * src/java/simpledb/execution/Filter.java
 * src/java/simpledb/execution/Join.java
 
-***  
+***
 
 At this point, your code should pass the unit tests in PredicateTest, JoinPredicateTest, FilterTest, and JoinTest.
 Furthermore, you should be able to pass the system tests FilterTest and JoinTest.
@@ -155,7 +155,7 @@ Furthermore, you should be able to pass the system tests FilterTest and JoinTest
 ### 2.2. Aggregates
 
 An additional SimpleDB operator implements basic SQL aggregates with a
-`GROUP BY` clause. You should implement the five SQL aggregates
+`GROUP BY` clause. You should implement the five SQL aggregates(分组，聚合)
 (`COUNT`, `SUM`, `AVG`, `MIN`,
 `MAX`) and support grouping. You only need to support aggregates over a single field, and grouping by a single field.
 
@@ -174,13 +174,13 @@ do not need to worry about the situation where the number of groups exceeds avai
 
 Implement the skeleton methods in:
 
-***  
+***
 
 * src/java/simpledb/execution/IntegerAggregator.java
 * src/java/simpledb/execution/StringAggregator.java
 * src/java/simpledb/execution/Aggregate.java
 
-***  
+***
 
 At this point, your code should pass the unit tests IntegerAggregatorTest, StringAggregatorTest, and AggregateTest.
 Furthermore, you should be able to pass the AggregateTest system test.
@@ -203,7 +203,7 @@ the physical file on disk. You will need to ensure that the RecordID in the tupl
 
 Implement the remaining skeleton methods in:
 
-***  
+***
 
 * src/java/simpledb/storage/HeapPage.java
 * src/java/simpledb/storage/HeapFile.java<br>
@@ -225,19 +225,18 @@ implementation of transactions in the next lab will not work properly.
 
 Implement the following skeleton methods in <tt>src/simpledb/BufferPool.java</tt>:
 
-***  
+***
 
 * insertTuple()
 * deleteTuple()
 
-***  
+***
 
 
 These methods should call the appropriate methods in the HeapFile that belong to the table being modified (this extra
 level of indirection is needed to support other types of files &mdash; like indices &mdash; in the future).
 
-At this point, your code should pass the unit tests in HeapPageWriteTest and HeapFileWriteTest, as well as
-BufferPoolWriteTest.
+At this point, your code should pass the unit tests in HeapPageWriteTest and HeapFileWriteTest, as well as BufferPoolWriteTest.
 
 ### 2.4. Insertion and deletion
 
@@ -259,12 +258,12 @@ returning a single tuple with one integer field, containing the count.
 
 Implement the skeleton methods in:
 
-***  
+***
 
 * src/java/simpledb/execution/Insert.java
 * src/java/simpledb/execution/Delete.java
 
-***  
+***
 
 At this point, your code should pass the unit tests in InsertTest. We have not provided unit tests for `Delete`.
 Furthermore, you should be able to pass the InsertTest and DeleteTest system tests.
@@ -296,7 +295,7 @@ page it evicts.
 
 Fill in the `flushPage()` method and additional helper methods to implement page eviction in:
 
-***  
+***
 
 * src/java/simpledb/storage/BufferPool.java
 

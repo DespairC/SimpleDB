@@ -19,14 +19,19 @@ import java.io.*;
  */
 public class HeapPage implements Page {
 
-    final HeapPageId pid;
-    final TupleDesc td;
+    private final HeapPageId pid;
+    private final TupleDesc td;
     // 槽储存
-    final byte[] header;
+    private final byte[] header;
     // 元组数据
-    final Tuple[] tuples;
+    private final Tuple[] tuples;
     // 槽数
-    final int numSlots;
+    private final int numSlots;
+
+    // 事务 id
+    private TransactionId tid;
+    // 是否是脏页
+    private boolean dirty;
 
     byte[] oldData;
     private final Byte oldDataLock= (byte) 0;
@@ -256,6 +261,19 @@ public class HeapPage implements Page {
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        // 查看属性是否匹配
+        int tupleId = t.getRecordId().getTupleNumber();
+        // 页面已被删除， 类型不相同， 页面不相同
+        if(tuples[tupleId] == null || !t.getTupleDesc().equals(td) || !t.getRecordId().getPageId().equals(pid)){
+            throw new DbException("this tuple is not on this page");
+        }
+        if(!isSlotUsed(tupleId)){
+            throw new DbException("tuple slot is already empty");
+        }
+        // 标记未被使用
+        markSlotUsed(tupleId, false);
+        // 删除插槽内容
+        tuples[tupleId] = null;
     }
 
     /**
@@ -268,6 +286,30 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        // 查看 Page 是否已满
+       if(getNumEmptySlots() == 0){
+           throw new DbException("当前页已满");
+       }
+
+       // 查看属性是否匹配
+        if(!t.getTupleDesc().equals(td)){
+            throw new DbException("类型不匹配");
+        }
+
+        // 查询 tuple
+        for (int i = 0; i < numSlots; i++) {
+            // 查看未被使用的槽
+            if(!isSlotUsed(i)){
+                // 标记使用
+                markSlotUsed(i, true);
+                // 设置路径
+                t.setRecordId(new RecordId(pid, i));
+                // 放入槽位
+                tuples[i] = t;
+                return ;
+            }
+        }
+
     }
 
     /**
@@ -276,7 +318,9 @@ public class HeapPage implements Page {
      */
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
-	// not necessary for lab1
+	    // not necessary for lab1
+        this.dirty = dirty;
+        this.tid = tid;
     }
 
     /**
@@ -284,8 +328,11 @@ public class HeapPage implements Page {
      */
     public TransactionId isDirty() {
         // some code goes here
-	// Not necessary for lab1
-        return null;      
+	    // Not necessary for lab1
+        if(dirty){
+            return tid;
+        }
+        return null;
     }
 
     /**
@@ -323,6 +370,21 @@ public class HeapPage implements Page {
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
+        // 找到槽位
+        int slot = i / 8;
+        // 偏移
+        int move = i % 8;
+        // 掩码
+        byte mask = (byte) (1 << move);
+        // 更新槽位
+        if(value){
+            // 标记已被使用，更新 0 为 1
+            header[slot] |= mask;
+        }else{
+            // 标记为未被使用，更新 1 为 0
+            // 除了该位其他位都是 1 的掩码，也就是该位会与 0 运算, 从而置零
+            header[slot] &= ~mask;
+        }
     }
 
     /**

@@ -1,3 +1,7 @@
+[toc]
+
+
+
 ## 资料来源
 
 课程地址：[6.830/6.814: Database Systems (mit.edu)](http://db.lcs.mit.edu/6.830/index.php)
@@ -10,7 +14,7 @@
 git clone https://github.com/MIT-DB-Class/simple-db-hw-2021.git 
 ```
 
-## lab1
+## Exercise1
 
 ### Tuple 元组
 
@@ -475,7 +479,7 @@ TupleTest 和 TupleDescTest
 
 
 
-## lab2
+## Exercise2
 
 ### Catelog 表日志
 
@@ -761,7 +765,7 @@ public class Catalog {
 
 CatalogTest
 
-## lab3
+## Exercise3
 
 ### BufferPoll 缓冲池
 
@@ -788,7 +792,7 @@ CatalogTest
           Page page = dbFile.readPage(pid);
           // 是否超过大小
           if(pageStore.size() >= numPages){
-              // 淘汰 (后面的 lab 书写)
+              // 淘汰 (后面的 Exercise 书写)
               throw new DbException("页面已满");
           }
           // 放入缓存
@@ -892,7 +896,7 @@ public class BufferPool {
             Page page = dbFile.readPage(pid);
             // 是否超过大小
             if(pageStore.size() >= numPages){
-                // 淘汰 (后面的 lab 书写)
+                // 淘汰 (后面的 Exercise 书写)
                 throw new DbException("页面已满");
             }
             // 放入缓存
@@ -913,7 +917,7 @@ public class BufferPool {
      */
     public  void unsafeReleasePage(TransactionId tid, PageId pid) {
         // some code goes here
-        // not necessary for lab1|lab2
+        // not necessary for Exercise1|Exercise2
     }
 
     /**
@@ -923,13 +927,13 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid) {
         // some code goes here
-        // not necessary for lab1|lab2
+        // not necessary for Exercise1|Exercise2
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
-        // not necessary for lab1|lab2
+        // not necessary for Exercise1|Exercise2
         return false;
     }
 
@@ -942,13 +946,13 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid, boolean commit) {
         // some code goes here
-        // not necessary for lab1|lab2
+        // not necessary for Exercise1|Exercise2
     }
 
     /**
      * Add a tuple to the specified table on behalf of transaction tid.  Will
      * acquire a write lock on the page the tuple is added to and any other 
-     * pages that are updated (Lock acquisition is not needed for lab2). 
+     * pages that are updated (Lock acquisition is not needed for Exercise2). 
      * May block if the lock(s) cannot be acquired.
      * 
      * Marks any pages that were dirtied by the operation as dirty by calling
@@ -963,7 +967,7 @@ public class BufferPool {
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -982,7 +986,7 @@ public class BufferPool {
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -992,7 +996,7 @@ public class BufferPool {
      */
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
 
     }
 
@@ -1006,7 +1010,7 @@ public class BufferPool {
     */
     public synchronized void discardPage(PageId pid) {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -1015,14 +1019,14 @@ public class BufferPool {
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /** Write all pages of the specified transaction to disk.
      */
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
-        // not necessary for lab1|lab2
+        // not necessary for Exercise1|Exercise2
     }
 
     /**
@@ -1031,7 +1035,7 @@ public class BufferPool {
      */
     private synchronized  void evictPage() throws DbException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 }
 ```
@@ -1042,7 +1046,7 @@ public class BufferPool {
 
 
 
-## lab4
+## Exercise4
 
 ### HeapPage  页面
 
@@ -1409,7 +1413,7 @@ public class HeapPage implements Page {
      */
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -1421,7 +1425,7 @@ public class HeapPage implements Page {
      */
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -1430,7 +1434,7 @@ public class HeapPage implements Page {
      */
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
-	// not necessary for lab1
+	// not necessary for Exercise1
     }
 
     /**
@@ -1438,7 +1442,7 @@ public class HeapPage implements Page {
      */
     public TransactionId isDirty() {
         // some code goes here
-	// Not necessary for lab1
+	// Not necessary for Exercise1
         return null;      
     }
 
@@ -1476,7 +1480,7 @@ public class HeapPage implements Page {
      */
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -1687,7 +1691,7 @@ HeapPageIdTest 、HeapPageReadTest、RecordIdTest
 
 
 
-## lab5
+## Exercise5
 
 ### HeapFile 存储文件
 
@@ -1771,85 +1775,85 @@ HeapPageIdTest 、HeapPageReadTest、RecordIdTest
   public DbFileIterator iterator(TransactionId tid) {
           // some code goes here
           return new HeapFileIterator(this, tid);
-  }
-  
-  private static final class HeapFileIterator implements DbFileIterator{
-      private final HeapFile heapFile;
-      private final TransactionId tid;
-      // 元组迭代器
-      private Iterator<Tuple> iterator;
-      private int whichPage;
-  
-      public HeapFileIterator(HeapFile heapFile, TransactionId tid) {
-          this.heapFile = heapFile;
-          this.tid = tid;
       }
   
-      @Override
-      public void open() throws DbException, TransactionAbortedException {
-          // 获取第一页的全部元组
-          whichPage = 0;
-          iterator = getPageTuple(whichPage);
-      }
+      private static final class HeapFileIterator implements DbFileIterator{
+          private final HeapFile heapFile;
+          private final TransactionId tid;
+          // 元组迭代器
+          private Iterator<Tuple> iterator;
+          private int whichPage;
   
-      // 获取当前页的所有行
-      private Iterator<Tuple> getPageTuple(int pageNumber) throws TransactionAbortedException, DbException {
-          // 在文件范围内
-          if(pageNumber >= 0 && pageNumber < heapFile.numPages()){
-              HeapPageId pid = new HeapPageId(heapFile.getId(), pageNumber);
-              // 从缓存池中查询相应的页面 读权限
-              HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY);
-              return page.iterator();
+          public HeapFileIterator(HeapFile heapFile, TransactionId tid) {
+              this.heapFile = heapFile;
+              this.tid = tid;
           }
-          throw new DbException(String.format("heapFile %d not contain page %d", pageNumber, heapFile.getId()));
-      }
   
-      @Override
-      public boolean hasNext() throws DbException, TransactionAbortedException {
-          // 如果迭代器为空
-          if(iterator == null){
-              return false;
+          @Override
+          public void open() throws DbException, TransactionAbortedException {
+              // 获取第一页的全部元组
+              whichPage = 0;
+              iterator = getPageTuple(whichPage);
           }
-          // 如果已经遍历结束
-          if(!iterator.hasNext()){
-              // 是否还存在下一页，小于文件的最大页
-              if(whichPage < (heapFile.numPages() - 1)){
-                  whichPage++;
-                  // 获取下一页
-                  iterator = getPageTuple(whichPage);
-                  return iterator.hasNext();
+  
+          // 获取当前页的所有行
+          private Iterator<Tuple> getPageTuple(int pageNumber) throws TransactionAbortedException, DbException {
+              // 在文件范围内
+              if(pageNumber >= 0 && pageNumber < heapFile.numPages()){
+                  HeapPageId pid = new HeapPageId(heapFile.getId(), pageNumber);
+                  // 从缓存池中查询相应的页面 读权限
+                  HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY);
+                  return page.iterator();
               }
-              // 所有元组获取完毕
-              else{
+              throw new DbException(String.format("heapFile %d not contain page %d", pageNumber, heapFile.getId()));
+          }
+  
+          @Override
+          public boolean hasNext() throws DbException, TransactionAbortedException {
+              // 如果迭代器为空
+              if(iterator == null){
                   return false;
               }
+              // 如果已经遍历结束
+              if(!iterator.hasNext()){
+                  // 是否还存在下一页，小于文件的最大页
+                  while(whichPage < (heapFile.numPages() - 1)){
+                      whichPage++;
+                      // 获取下一页
+                      iterator = getPageTuple(whichPage);
+                      if(iterator.hasNext()){
+                          return iterator.hasNext();
+                      }
+                  }
+                  // 所有元组获取完毕
+                  return false;
+              }
+              return true;
           }
-          return true;
-      }
   
-      @Override
-      public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
-          // 如果没有元组了，抛出异常
-          if(iterator == null || !iterator.hasNext()){
-              throw new NoSuchElementException();
+          @Override
+          public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+              // 如果没有元组了，抛出异常
+              if(iterator == null || !iterator.hasNext()){
+                  throw new NoSuchElementException();
+              }
+              // 返回下一个元组
+              return iterator.next();
           }
-          // 返回下一个元组
-          return iterator.next();
-      }
   
-      @Override
-      public void rewind() throws DbException, TransactionAbortedException {
-          // 清除上一个迭代器
-          close();
-          // 重新开始
-          open();
-      }
+          @Override
+          public void rewind() throws DbException, TransactionAbortedException {
+              // 清除上一个迭代器
+              close();
+              // 重新开始
+              open();
+          }
   
-      @Override
-      public void close() {
-          iterator = null;
+          @Override
+          public void close() {
+              iterator = null;
+          }
       }
-  }
   ```
 
 #### 全代码
@@ -1972,7 +1976,7 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
         // some code goes here
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     /**
@@ -1990,7 +1994,7 @@ public class HeapFile implements DbFile {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         return null;
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     // see DbFile.java for javadocs
@@ -1998,7 +2002,7 @@ public class HeapFile implements DbFile {
             TransactionAbortedException {
         // some code goes here
         return null;
-        // not necessary for lab1
+        // not necessary for Exercise1
     }
 
     // see DbFile.java for javadocs
@@ -2047,16 +2051,16 @@ public class HeapFile implements DbFile {
             // 如果已经遍历结束
             if(!iterator.hasNext()){
                 // 是否还存在下一页，小于文件的最大页
-                if(whichPage < (heapFile.numPages() - 1)){
+                while(whichPage < (heapFile.numPages() - 1)){
                     whichPage++;
                     // 获取下一页
                     iterator = getPageTuple(whichPage);
-                    return iterator.hasNext();
+                    if(iterator.hasNext()){
+                        return iterator.hasNext();
+                    }
                 }
                 // 所有元组获取完毕
-                else{
-                    return false;
-                }
+                return false;
             }
             return true;
         }
@@ -2092,7 +2096,7 @@ public class HeapFile implements DbFile {
 
 HeapFileReadTest
 
-## lab6
+## Exercise6
 
 ### SeqScan 查询
 
@@ -2307,7 +2311,7 @@ public class SeqScan implements OpIterator {
 
 ### 测试：
 
-## lab7
+## Exercise7
 
 ### 简易查询
 

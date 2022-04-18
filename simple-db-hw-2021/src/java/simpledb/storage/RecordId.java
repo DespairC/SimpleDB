@@ -11,6 +11,7 @@ public class RecordId implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private PageId pid;
+    // 插槽 id
     private int tupleno;
 
     /**

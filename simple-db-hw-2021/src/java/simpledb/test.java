@@ -12,10 +12,10 @@ import java.io.IOException;
 public class test {
     public static void main(String[] args) throws IOException {
         // 创建模式头部
-        Type[] types = new Type[]{Type.INT_TYPE, Type.INT_TYPE, Type.INT_TYPE, Type.INT_TYPE};
-        String[] name = new String[]{"field0", "field1", "field2", "field3"};
+        Type[] types = new Type[]{Type.INT_TYPE, Type.INT_TYPE};
+        String[] name = new String[]{"field0", "field1"};
         TupleDesc tupleDesc = new TupleDesc(types, name);
-        HeapFileEncoder.convert(new File("test.dat"), new File("some_date_file.dat"), BufferPool.getPageSize(), 4, types);
+        HeapFileEncoder.convert(new File("test.dat"), new File("some_date_file.dat"), BufferPool.getPageSize(), 2, types);
         File file = new File("some_date_file.dat");
         // 创建 table 文件
         HeapFile heapFile = new HeapFile(new File("some_date_file.dat"), tupleDesc);
