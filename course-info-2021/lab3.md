@@ -4,7 +4,7 @@
 **Due: Tuesday, Apr 6, 2021**
 
 In this lab, you will implement a query optimizer on top of SimpleDB.
-The main tasks include implementing a selectivity estimation framework
+The main tasks include implementing a selectivity estimation(估算) framework
 and a cost-based optimizer. You have freedom as to exactly what you
 implement, but we recommend using something similar to the Selinger
 cost-based optimizer discussed in class (Lecture 9).
@@ -75,18 +75,19 @@ to review the <a href="https://github.com/MIT-DB-Class/simple-db-hw-2021/blob/ma
 before starting this lab.  Briefly, if you have a catalog file
 <tt>catalog.txt</tt> describing your tables, you can run the parser by
 typing:
+
 ```
 java -jar dist/simpledb.jar parser catalog.txt
 ```
 
-When the Parser is invoked, it will compute statistics over all of the
-tables (using statistics code you provide). When a query is issued,
+When the Parser is invoked, it will compute statistics(统计) over all of the
+tables (using statistics code you provide). When a query is issued(发布),
 the parser
-will convert the query into a logical plan representation and then call
-your query optimizer to generate an optimal plan.
+will convert the query into a logical plan representation(代表) and then call
+your query optimizer(优化器) to generate an optimal plan.
 
 ### 2.1 Overall Optimizer Structure
-Before getting started with the implementation, you need to understand the overall structure of the SimpleDB
+Before getting started with the implementation, you need to understand the overall(整体) structure of the SimpleDB
 optimizer.  The overall control flow of the SimpleDB modules of the parser and optimizer is shown in Figure 1.
 
 <p align="center">
@@ -109,6 +110,7 @@ the basic operation is as follows:
     <tt>LogicalPlan</tt> instance it has constructed.  The <tt>physicalPlan</tt> method returns a
     <tt>DBIterator</tt> object that can be used to actually run the query.
     
+
 In the exercises to come, you will implement the methods that help
 <tt>physicalPlan</tt> devise an optimal plan.
 
@@ -139,7 +141,7 @@ scancost(t3) + joincost((t1 join t2) join t3) +
 
 Here, `scancost(t1)` is the I/O cost of scanning table t1,
 `joincost(t1,t2)` is the CPU cost to join t1 to t2.  To
-make I/O and CPU cost comparable, typically a constant scaling factor
+make I/O and CPU cost comparable, typically a constant（持续的） scaling（缩放比例） factor
 is used, e.g.:
 
 ```
@@ -147,8 +149,8 @@ cost(predicate application) = 1
 cost(pageScan) = SCALING_FACTOR x cost(predicate application)
 ```
 
-For this lab, you can ignore the effects of caching (e.g., assume that
-every access to a table incurs the full cost of a scan) -- again, this
+For this lab, you can ignore the effects of caching（缓存） (e.g., assume that
+every access to a table incurs(带来) the full cost of a scan) -- again, this
 is something you may add as an optional bonus extension to your lab
 in Section 2.3.  Therefore, `scancost(t1)` is simply the
 number of pages in `t1 x SCALING_FACTOR`.
@@ -169,16 +171,16 @@ Here, `ntups(t1)` is the number of tuples in table t1.
 ####  2.2.3 Filter Selectivity
 
 `ntups` can be directly computed for a base table by
-scanning that table.  Estimating `ntups` for a table with
+scanning that table.  Estimating（估算） `ntups` for a table with
 one or more selection predicates over it can be trickier --
 this is the *filter selectivity estimation* problem.  Here's one
-approach that you might use, based on computing a histogram over the
+approach that you might use, based on computing a histogram(直方图) over the
 values in the table:
 
-*  Compute the minimum and maximum values for every attribute in the table (by scanning
+*  Compute the minimum and maximum values for every attribute（属性） in the table (by scanning
    it once).
-*  Construct a histogram for every attribute in the table. A simple
-   approach is to use a fixed number of buckets *NumB*,
+*  Construct（建造） a histogram for every attribute in the table. A simple
+   approach（方法） is to use a fixed number of buckets *NumB*,
    with
    each bucket representing the number of records in a fixed range of the
    domain of the attribute of the histogram.  For example, if a field
@@ -193,7 +195,7 @@ values in the table:
    Suppose the width (range of values) of the bucket is *w*, the height (number of
    tuples) is *h*,
    and the number of tuples in the table is *ntups*.  Then, assuming
-   values are uniformly distributed throughout the bucket, the selectivity of
+   values are uniformly(一致的) distributed throughout the bucket, the selectivity of
    the
    expression is roughly *(h / w) / ntups*, since *(h/w)*
    represents the expected number of tuples in the bin with value
@@ -229,7 +231,7 @@ joins and filters.
 
 You will need to implement
 some way to record table statistics for selectivity estimation.  We have
-provided a skeleton class, <tt>IntHistogram</tt> that will do this.  Our
+provided a skeleton（框架） class, <tt>IntHistogram</tt> that will do this.  Our
 intent is that you calculate histograms using the bucket-based method described
 above, but you are free to use some other method so long as it provides
 reasonable selectivity estimates.
@@ -302,16 +304,15 @@ While implementing your simple solution, you  should keep in mind the following:
 
 <!--  
   * <a name="change">The following three paragraphs are different in this version of the lab. </a> *
-  .-->
+    .-->
 *  For equality joins, when one of the attributes is a primary key, the number of tuples produced by the join cannot
-   be larger than the cardinality of the non-primary key attribute.
-* For equality joins when there is no primary key, it's hard to say much about what the size of the output
-  is -- it could be the size of the product of the cardinalities of the tables (if both tables have the
-  same value for all tuples) -- or it could be 0.  It's fine to make up a simple heuristic (say,
+   be larger than the cardinality of the non-primary key attribute(属性).
+* For equality（均等） joins when there is no primary key, it's hard to say much about what the size of the output is -- it could be the size of the product of the cardinalities（基数） of the tables (if both tables have the
+  same value for all tuples) -- or it could be 0.  It's fine to make up a simple heuristic(启发式) (say,
   the size of the larger of the two tables).
-*  For range scans, it is similarly hard to say anything accurate about sizes.
-   The size of the output should be proportional to
-   the sizes of the inputs.  It is fine to assume that a fixed fraction
+*  For range scans, it is similarly hard to say anything accurate(准确的) about sizes.
+   The size of the output should be proportional(对称的) to
+   the sizes of the inputs.  It is fine to assume that a fixed fraction（分数）
    of the cross-product is emitted by range scans (say, 30%).  In general, the cost of a range
    join should be larger than the cost of a non-primary key equality join of two tables
    of the same size.
@@ -321,7 +322,6 @@ While implementing your simple solution, you  should keep in mind the following:
 
 ***
 **Exercise 3:  Join Cost Estimation**
-
 
 The class <tt>JoinOptimizer.java</tt> includes all of the methods
 for ordering and computing costs of joins.  In this exercise, you
@@ -334,13 +334,13 @@ a join, specifically:
    join j, given that the left input is of cardinality card1, the
    right input of cardinality card2, that the cost to scan the left
    input is cost1, and that the cost to access the right input is
-   card2.  You can assume the join is an NL join, and apply
-   the formula mentioned earlier.
+   card2.  You can assume(假设) the join is an NL join, and apply
+   the formula(计划) mentioned earlier.
 *  Implement <tt>estimateJoinCardinality(LogicalJoinNode j, int
    card1, int card2, boolean t1pkey, boolean t2pkey)</tt>: This
    method estimates the number of tuples output by join j, given that
    the left input is size card1, the right input is size card2, and
-   the flags t1pkey and t2pkey that indicate whether the left and
+   the flags t1pkey and t2 pkey that indicate whether the left and
    right (respectively) field is unique (a primary key).
 
 After implementing these methods, you should be able to pass the unit

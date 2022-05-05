@@ -6,6 +6,17 @@ import simpledb.execution.Predicate;
  */
 public class IntHistogram {
 
+    // 直方图
+    private int[] buckets;
+    // 边界最小值
+    private int min;
+    // 边界最大值
+    private int max;
+    // 长度
+    private double width;
+    // 行数
+    private int tuplesCount = 0;
+
     /**
      * Create a new IntHistogram.
      * 
@@ -24,20 +35,32 @@ public class IntHistogram {
      */
     public IntHistogram(int buckets, int min, int max) {
     	// some code goes here
+        this.buckets = new int[buckets];
+        this.min = min;
+        this.max = max;
+        this.width = (max - min + 1.0) / buckets;
+        this.tuplesCount = 0;
     }
 
     /**
      * Add a value to the set of values that you are keeping a histogram of.
      * @param v Value to add to the histogram
      */
+    private int getIndex(int v){
+        return (int) ((v - min) / width);
+    }
     public void addValue(int v) {
     	// some code goes here
+        if(v >= min && v <= max){
+            buckets[getIndex(v)]++;
+            tuplesCount++;
+        }
     }
 
     /**
      * Estimate the selectivity of a particular predicate and operand on this table.
-     * 
-     * For example, if "op" is "GREATER_THAN" and "v" is 5, 
+     *
+     * For example, if "op" is "GREATER_THAN" and "v" is 5,
      * return your estimate of the fraction of elements that are greater than 5.
      * 
      * @param op Operator
@@ -45,9 +68,38 @@ public class IntHistogram {
      * @return Predicted selectivity of this particular operator and value
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
-
     	// some code goes here
-        return -1.0;
+        switch (op){
+            case LESS_THAN:
+                if(v <= min){
+                    return 0.0;
+                }
+                else if(v >= max){
+                    return 1.0;
+                }
+                else{
+                    int index = getIndex(v);
+                    double tuples = 0;
+                    for (int i = 0; i < index; i++) {
+                        tuples += buckets[i];
+                    }
+                    // 索引所在柱的高度 * （当前值 - 该柱前的宽度）<这个也就是当前柱所占的宽度>
+                    tuples += (1.0 * buckets[index] / width) * (v - index * width - min);
+                    return tuples / tuplesCount;
+                }
+            case GREATER_THAN:
+                return 1 - estimateSelectivity(Predicate.Op.LESS_THAN_OR_EQ, v);
+            case EQUALS:
+                return estimateSelectivity(Predicate.Op.LESS_THAN_OR_EQ, v) - estimateSelectivity(Predicate.Op.LESS_THAN, v);
+            case NOT_EQUALS:
+                return 1 - estimateSelectivity(Predicate.Op.EQUALS, v);
+            case GREATER_THAN_OR_EQ:
+                return estimateSelectivity(Predicate.Op.GREATER_THAN, v - 1);
+            case LESS_THAN_OR_EQ:
+                return estimateSelectivity(Predicate.Op.LESS_THAN, v + 1);
+            default:
+                throw new IllegalArgumentException("Operation is illegal");
+        }
     }
     
     /**
@@ -61,7 +113,12 @@ public class IntHistogram {
     public double avgSelectivity()
     {
         // some code goes here
-        return 1.0;
+        int cnt = 0;
+        for(int bucket : buckets){
+                cnt += bucket;
+        }
+        if(cnt == 0) return 0;
+        return (cnt * 1.0 / tuplesCount);
     }
     
     /**
@@ -69,6 +126,6 @@ public class IntHistogram {
      */
     public String toString() {
         // some code goes here
-        return null;
+        return String.format("IntHistogram(buckets = %d, min = %d, max = %d)", buckets.length, min, max);
     }
 }
