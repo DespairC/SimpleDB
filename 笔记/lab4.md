@@ -1,3 +1,258 @@
+[toc]
+
+# Exercise 1 + 2 + 5
+
+## BufferPoll
+
+### 参数
+
+- private LockManager lockManager;	// 锁的管理器，管理已经持有的锁
+
+  - PageLock：页面锁，某个事务持有的锁（两种类型，共享锁和排他锁）
+
+  ```java
+  // 锁
+  class PageLock{
+      private static final int SHARE = 0;
+      private static final int EXCLUSIVE = 1;
+      private TransactionId tid;
+      private int type;
+      public PageLock(TransactionId tid, int type){
+          this.tid = tid;
+          this.type = type;
+      }
+      public TransactionId getTid(){
+          return tid;
+      }
+      public int getType(){
+          return type;
+      }
+      public void setType(int type){
+          this.type = type;
+      }
+  }
+  ```
+
+  - LockManager：锁管理器
+
+  ```java
+  class LockManager {
+      ConcurrentHashMap<PageId, ConcurrentHashMap<TransactionId, PageLock>> lockMap = new ConcurrentHashMap<>();
+      /**
+           * 获取锁
+           */
+      public synchronized boolean acquiredLock(PageId pageId, TransactionId tid, int requiredType) {
+          // 判断当前页是否当前有锁
+          if (lockMap.get(pageId) == null) {
+              // 创建锁
+              PageLock pageLock = new PageLock(tid, requiredType);
+              ConcurrentHashMap<TransactionId, PageLock> pageLocks = new ConcurrentHashMap<>();
+              pageLocks.put(tid, pageLock);
+              lockMap.put(pageId, pageLocks);
+              return true;
+          }
+          // 获取当前锁的等待队列
+          ConcurrentHashMap<TransactionId, PageLock> pageLocks = lockMap.get(pageId);
+          // tid 没有 Page 上的锁
+          if (pageLocks.get(tid) == null) {
+              // 如果 当前页已经有锁
+              if (pageLocks.size() > 1) {
+                  // 如果是共享锁，新增获取对象
+                  if (requiredType == PageLock.SHARE) {
+                      // tid 请求锁
+                      PageLock pageLock = new PageLock(tid, PageLock.SHARE);
+                      pageLocks.put(tid, pageLock);
+                      lockMap.put(pageId, pageLocks);
+                      return true;
+                  }
+                  // 如果是排他锁
+                  else if (requiredType == PageLock.EXCLUSIVE) {
+                      // tid 需要获取写锁，拒绝
+                      return false;
+                  }
+              }
+              if (pageLocks.size() == 1) {
+                  // page 上有一个其他事务， 可能是写锁，也可能是读锁
+                  PageLock curLock = null;
+                  for (PageLock lock : pageLocks.values()) {
+                      curLock = lock;
+                  }
+                  if (curLock.getType() == PageLock.SHARE) {
+                      // 如果请求的锁也是读锁
+                      if (requiredType == PageLock.SHARE) {
+                          // tid 请求锁
+                          PageLock pageLock = new PageLock(tid, PageLock.SHARE);
+                          pageLocks.put(tid, pageLock);
+                          lockMap.put(pageId, pageLocks);
+                          return true;
+                      }
+                      // 如果是独占锁
+                      else if (requiredType == PageLock.EXCLUSIVE) {
+                          // tid 需要获取写锁，拒绝
+                          return false;
+                      }
+                  }
+                  // 如果是独占锁
+                  else if (curLock.getType() == PageLock.EXCLUSIVE) {
+                      // tid 需要获取写锁，拒绝
+                      return false;
+                  }
+              }
+          }
+          // 当前事务持有 Page 锁
+          else if (pageLocks.get(tid) != null) {
+              PageLock pageLock = pageLocks.get(tid);
+              // 事务上是写锁
+              if (pageLock.getType() == PageLock.SHARE) {
+                  // 新请求的是读锁
+                  if (requiredType == PageLock.SHARE) {
+                      return true;
+                  }
+                  // 新请求是写锁
+                  else if (requiredType == PageLock.EXCLUSIVE) {
+                      // 如果该页面上只有一个锁，就是该事务的读锁
+                      if (pageLocks.size() == 1) {
+                          // 进行锁升级(升级为写锁)
+                          pageLock.setType(PageLock.EXCLUSIVE);
+                          pageLocks.put(tid, pageLock);
+                          return true;
+                      }
+                      // 大于一个锁，说明有其他事务有共享锁
+                      else if (pageLocks.size() > 1) {
+                          // 不能进行锁的升级
+                          return false;
+                      }
+                  }
+              }
+              // 事务上是写锁
+              // 无论请求的是读锁还是写锁，都可以直接返回获取
+              return pageLock.getType() == PageLock.EXCLUSIVE;
+          }
+          return false;
+      }
+  
+      /**
+           * 释放锁
+           */
+      public synchronized boolean releaseLock(TransactionId tid, PageId pageId) {
+          // 判断是否持有锁
+          if (isHoldLock(tid, pageId)) {
+              ConcurrentHashMap<TransactionId, PageLock> locks = lockMap.get(pageId);
+              locks.remove(tid);
+              if (locks.size() == 0) {
+                  lockMap.remove(pageId);
+              }
+              return true;
+          }
+          return false;
+      }
+  
+      /**
+           * 判断是否持有锁
+           */
+      public synchronized boolean isHoldLock(TransactionId tid, PageId pageId) {
+          ConcurrentHashMap<TransactionId, PageLock> locks = lockMap.get(pageId);
+          if (locks == null) {
+              return false;
+          }
+          PageLock pageLock = locks.get(tid);
+          if (pageLock == null) {
+              return false;
+          }
+          return true;
+      }
+  
+      /**
+           * 完成事务后释放所有锁
+           */
+      public synchronized void completeTranslation(TransactionId tid) {
+          // 遍历所有的页，如果对应事务持有锁就会释放
+          for (PageId pageId : lockMap.keySet()) {
+              releaseLock(tid, pageId);
+          }
+      }
+  }
+  ```
+
+### 方法
+
+- BufferPoll(int numPages)
+
+  ```java
+  public BufferPool(int numPages) {
+      // some code goes here
+      this.numPages = numPages;
+      pageStore = new ConcurrentHashMap<>();
+      head = new LinkedNode(new HeapPageId(-1, -1), null);
+      tail = new LinkedNode(new HeapPageId(-1, -1), null);
+      head.next = tail;
+      tail.prev = head;
+      // 新增一个锁管理器
+      lockManager = new LockManager();
+  }
+  ```
+
+- getPage(TransactionId tid, PageId pid, Permissions perm)
+
+  ```java
+  public Page getPage(TransactionId tid, PageId pid, Permissions perm)
+      throws TransactionAbortedException, DbException {
+      // some code goes here
+      // ------------------- lab 5 -----------------------------
+      // 判断需要获取的锁的类型
+      int lockType = perm == Permissions.READ_ONLY ? PageLock.SHARE : PageLock.EXCLUSIVE;
+      // 计算超时时间（设置为 500 ms）
+      long startTime = System.currentTimeMillis();
+      boolean isAcquired = false;
+      // 循环获取锁
+      while(!isAcquired){
+          // 尝试获取锁
+          isAcquired = lockManager.acquiredLock(pid, tid, lockType);
+          long now = System.currentTimeMillis();
+          // 如果超过 500 ms没有获取就抛出异常
+          if(now - startTime > 500){
+              // 放弃当前事务
+              throw new TransactionAbortedException();
+          }
+      }
+  
+      // ------------------- lab 3 ------------------------------
+      // 如果缓存池中没有
+      if(!pageStore.containsKey(pid)){
+          // 获取
+          DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+          Page page = dbFile.readPage(pid);
+          // 是否超过大小
+          if(pageStore.size() >= numPages){
+              // 使用 LRU 算法进行淘汰最近最久未使用
+              evictPage();
+          }
+          LinkedNode node = new LinkedNode(pid, page);
+          // 放入缓存
+          pageStore.put(pid, node);
+          // 插入头节点
+          addToHead(node);
+      }
+      // 移动到头部
+      moveToHead(pageStore.get(pid));
+      // 从 缓存池 中获取
+      return pageStore.get(pid).page;
+  }
+  ```
+
+- unsafeReleasePage(TransactionId tid, PageId pid)
+
+  ```java
+  public  void unsafeReleasePage(TransactionId tid, PageId pid) {
+      // some code goes here
+      // not necessary for lab1|lab2
+      lockManager.releaseLock(tid, pid);
+  }
+  ```
+
+### 全代码
+
+```java
 package simpledb.storage;
 
 import simpledb.common.Database;
@@ -354,14 +609,13 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid) {
         // some code goes here
         // not necessary for lab1|lab2
-        lockManager.completeTranslation(tid);
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for lab1|lab2
-        return lockManager.isHoldLock(tid, p);
+        return false;
     }
 
     /**
@@ -374,45 +628,6 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid, boolean commit) {
         // some code goes here
         // not necessary for lab1|lab2
-        // 如果成功提交
-        if(commit){
-            // 刷新页面
-            try{
-                flushPages(tid);
-            }catch (IOException e){
-                e.printStackTrace();
-            }
-        }
-        // 如果提交失败，回滚
-        else{
-            restorePages(tid);
-        }
-        // 事务完成
-        lockManager.completeTranslation(tid);
-    }
-
-    /**
-     * 回滚页面
-     * */
-    public synchronized void restorePages(TransactionId tid){
-        // 遍历缓存中的所有页面，看是否是当前事务修改的页面
-        for(LinkedNode node : pageStore.values()){
-            PageId pageId = node.pageId;
-            Page page = node.page;
-            // 如果脏页的 事务id 相同
-            if(tid.equals(page.isDirty())){
-                int tableId = pageId.getTableId();
-                // 获取现有的表
-                DbFile table = Database.getCatalog().getDatabaseFile(tableId);
-                // 读取当前的页面
-                Page pageFromDisk = table.readPage(pageId);
-
-                // 写回内存
-                node.page = pageFromDisk;
-                pageStore.put(pageId, node);
-                moveToHead(node);
-            }
-        }
     }
 
     /**
@@ -505,7 +720,7 @@ public class BufferPool {
         Also used by B+ tree files to ensure that deleted pages
         are removed from the cache so they can be reused safely
     */
-    public synchronized void discardPage(PageId pid) {
+    public synchronized void discardPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
         // 删除使用记录
@@ -536,15 +751,6 @@ public class BufferPool {
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
-        // 遍历缓存中的所有页面，看是否是当前事务修改的页面
-        for(LinkedNode node : pageStore.values()){
-            PageId pageId = node.pageId;
-            Page page = node.page;
-            // 如果脏页的 事务id 相同
-            if(tid.equals(page.isDirty())){
-                flushPage(pageId);
-            }
-        }
     }
 
     /**
@@ -554,24 +760,213 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
-        // 遍历全部页面，如果是脏页需要跳过，因为还没提交
-        for (int i = 0; i < numPages; i++) {
-            // 淘汰尾部节点
-            LinkedNode node = removeTail();
-            Page evictPage = node.page;
-            // 如果有事务持有，也就是脏页，需要跳过
-            if(evictPage.isDirty() != null){
-                addToHead(node);
-            }
-            // 如果不是脏页，可以淘汰使用
-            else{
-                // 删除当前页面
-                discardPage(node.pageId);
-                return ;
-            }
+        // 淘汰尾部节点
+        LinkedNode node = removeTail();
+        // 更新页面
+        try{
+            flushPage(node.pageId);
+        }catch (IOException e){
+            e.printStackTrace();
         }
-        // 如果没有就是所有页面都是未提交的脏页
-        throw new DbException("All Page Are Dirty Page");
+        // 移除缓存中的记录
+        pageStore.remove(node.pageId);
     }
 
 }
+
+```
+
+
+
+## HeapFile
+
+### 方法
+
+- public List<Page> insertTuple(TransactionId tid, Tuple t)
+
+  ```java
+  public List<Page> insertTuple(TransactionId tid, Tuple t)
+      throws DbException, IOException, TransactionAbortedException {
+      // some code goes here
+      // not necessary for lab1
+  
+      ArrayList<Page> list = new ArrayList<>();
+      // 查询现有的页
+      for (int pageNo = 0; pageNo < numPages(); pageNo++) {
+          // 查询页
+          HeapPageId pageId = new HeapPageId(getId(), pageNo);
+          HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
+          // 看当前页是有 空闲空间
+          if(page.getNumEmptySlots() != 0){
+              page.insertTuple(t);
+              list.add(page);
+              return list;
+          }
+          //----------------- lab 4 ------------------------
+          // 当该 page 上没有空闲空 slot 的时候，释放该 page 上的锁，避免影响其他事务访问
+          else{
+              Database.getBufferPool().unsafeReleasePage(tid, pageId);
+          }
+      }
+  
+      // 如果所有页都已经写满，就要新建新的页面来加入(记得开启 append = true 也就是增量增加)
+      BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(file, true));
+      // 新建一个空的页
+      byte[] emptyPage = HeapPage.createEmptyPageData();
+      output.write(emptyPage);
+      // close 前会调用 flush() 刷盘到文件
+      output.close();
+  
+      // 创建新的页面
+      HeapPageId pageId = new HeapPageId(getId(), numPages() - 1);
+      HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
+      page.insertTuple(t);
+      list.add(page);
+      return list;
+  }
+  ```
+
+  
+
+## 测试
+
+LockingTest
+
+
+
+
+
+# Exercise 3
+
+## BufferPoll
+
+原本的设置是，如果页面被替换出去就要刷新页面，现在要修改的是当该页是脏页，也就是事务还没有提交的页面的时候，不能够刷新。
+
+### 方法
+
+- void evictPage()
+
+  ```java
+  private synchronized  void evictPage() throws DbException {
+      // some code goes here
+      // not necessary for lab1
+      // 遍历全部页面，如果是脏页需要跳过，因为还没提交
+      for (int i = 0; i < numPages; i++) {
+          // 淘汰尾部节点
+          LinkedNode node = removeTail();
+          Page evictPage = node.page;
+          // 如果当前有事务持有，也就是脏页，需要跳过
+          if(evictPage.isDirty() != null){
+              addToHead(node);
+          }
+          // 如果不是，刷盘
+          else{
+              // 更新页面
+              try{
+                  flushPage(node.pageId);
+              }catch (IOException e){
+                  e.printStackTrace();
+              }
+              pageStore.remove(node.pageId);
+              return ;
+          }
+      }
+      // 如果没有就是所有页面都是未提交的脏页
+      throw new DbException("All Page Are Dirty Page");
+  }
+  ```
+
+
+
+## 测试
+
+实验三暂时无需测试
+
+
+
+# Exercise 4
+
+实现第二个 TransactionComplete，也就是验证提交成功的时候，刷新页面，提交失败的时候，回滚页面
+
+## 方法
+
+- flushPages(TransactionId tid)；   //事务提交成功后刷新
+
+  ```java
+      public synchronized  void flushPages(TransactionId tid) throws IOException {
+          // some code goes here
+          // not necessary for lab1|lab2
+          // 遍历缓存中的所有页面，看是否是当前事务修改的页面
+          for(LinkedNode node : pageStore.values()){
+              PageId pageId = node.pageId;
+              Page page = node.page;
+              // 如果脏页的 事务id 相同
+              if(tid.equals(page.isDirty())){
+                  flushPage(pageId);
+              }
+          }
+      }
+  ```
+
+- transactionComplete(TransactionId tid, boolean commit)
+
+  ```java
+  public void transactionComplete(TransactionId tid, boolean commit) {
+      // some code goes here
+      // not necessary for lab1|lab2
+      // 如果成功提交
+      if(commit){
+          // 刷新页面
+          try{
+              flushPages(tid);
+          }catch (IOException e){
+              e.printStackTrace();
+          }
+      }
+      // 如果提交失败，回滚
+      else{
+          restorePages(tid);
+      }
+      // 事务完成
+      lockManager.completeTranslation(tid);
+  }
+  ```
+
+- restorePages(TransactionId tid);      // 回滚页面
+
+  ```java
+      public synchronized void restorePages(TransactionId tid){
+          // 遍历缓存中的所有页面，看是否是当前事务修改的页面
+          for(LinkedNode node : pageStore.values()){
+              PageId pageId = node.pageId;
+              Page page = node.page;
+              // 如果脏页的 事务id 相同
+              if(tid.equals(page.isDirty())){
+                  int tableId = pageId.getTableId();
+                  // 获取现有的表
+                  DbFile table = Database.getCatalog().getDatabaseFile(tableId);
+                  // 读取当前的页面
+                  Page pageFromDisk = table.readPage(pageId);
+  
+                  // 写回内存
+                  node.page = pageFromDisk;
+                  pageStore.put(pageId, node);
+                  moveToHead(node);
+              }
+          }
+      }
+  ```
+
+  
+
+## 测试
+
+TransactionTest、AbortEvictionTest（systemtest）
+
+
+
+# Exercise 5
+
+## 测试
+
+TransactionTest

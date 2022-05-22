@@ -23,7 +23,7 @@ submit code for Lab 3, or your solution didn't work properly, contact us to
 discuss options).  Additionally, we are providing extra test cases
 for this lab that are not in the original code distribution you received. We reiterate
 that the unit tests we provide are to help guide your implementation along,
-but they are not intended to be comprehensive or to establish correctness.
+but they are not intended to be comprehensive or to establish(建立) correctness（正确性）.
 
 You will need to add these new files to your release. The easiest way
 to do this is to change to your project directory (probably called simple-db-hw)
@@ -41,13 +41,13 @@ you should make sure you understand what a transaction is and how
 strict two-phase locking (which you will use to ensure isolation and
 atomicity of your transactions) works.
 
-In the remainder of this section, we briefly overview these concepts
+In the remainder of this section, we briefly overview（概述） these concepts
 and discuss how they relate to SimpleDB.
 
 ###  2.1. Transactions
 
 A transaction is a group of database actions (e.g., inserts, deletes,
-and reads) that are executed *atomically*; that is, either all of
+and reads) that are executed(实施) *atomically*; that is, either all of
 the actions complete or none of them do, and it is not apparent to an
 outside observer of the database that these actions were not completed
 as a part of a single, indivisible action.
@@ -70,17 +70,17 @@ it ensures that the ACID properties are satisfied:
 
 ###  2.3. Recovery and Buffer Management
 
-To simplify your job, we recommend that you implement a NO STEAL/FORCE
+To simplify(简化) your job, we recommend that you implement a NO STEAL/FORCE
 buffer management policy.
 
 As we discussed in class, this means that:
 
-*  You shouldn't evict dirty (updated) pages from the buffer pool if they
+*  You shouldn't evict(驱逐) dirty (updated) pages from the buffer pool if they
    are locked by an uncommitted transaction (this is NO STEAL).
-*  On transaction commit, you should force dirty pages to disk (e.g.,
+*  On transaction commit, you should force dirty pages to disk(刷盘) (e.g.,
    write the pages out) (this is FORCE).
-   
-To further simplify your life, you may assume that SimpleDB will not crash
+
+To further(更远的) simplify(简化) your life, you may assume(假设) that SimpleDB will not crash(崩溃)
 while processing a `transactionComplete` command.  Note that
 these three points mean that you do not need to implement log-based
 recovery in this lab, since you will never need to undo any work (you never evict
@@ -91,16 +91,16 @@ updates on commit and will not crash during commit processing).
 
 You will need to add calls to SimpleDB (in `BufferPool`,
 for example), that allow a caller to request or release a (shared or
-exclusive) lock on a specific object on behalf of a specific
+exclusive(独占)) lock on a specific object on behalf(代表) of a specific
 transaction.
 
-We recommend locking at *page* granularity; please do not
-implement table-level locking (even though it is possible) for simplicity of testing. The rest
+We recommend locking at *page* granularity(间隙锁); please do not
+implement table-level locking(表级锁) (even though it is possible) for simplicity of testing. The rest
 of this document and our unit tests assume page-level locking.
 
 You will need to create data structures that keep track of which locks
 each transaction holds and check to see if a lock should be granted
-to a transaction when it is requested.
+to(被授予) a transaction when it is requested.
 
 You will need to implement shared and exclusive locks; recall that these
 work as follows:
@@ -116,7 +116,7 @@ work as follows:
 If a transaction requests a lock that cannot be immediately granted, your code
 should *block*, waiting for that lock to become available (i.e., be
 released by another transaction running in a different thread).
-Be careful about race conditions in your lock implementation --- think about
+Be careful about race(竞争) conditions in your lock implementation --- think about
 how concurrent invocations to your lock may affect the behavior. 
 (you way wish to read about <a href="http://docs.oracle.com/javase/tutorial/essential/concurrency/sync.html">
 Synchronization</a> in Java).
@@ -133,10 +133,10 @@ you are using page-level locking, you will need to complete the following:
 *  Implement <tt>unsafeReleasePage()</tt>.  This method is primarily used
    for testing, and at the end of transactions.
 *  Implement <tt>holdsLock()</tt> so that logic in Exercise 2 can
-   determine whether a page is already locked by a transaction.
+   determine(决定) whether a page is already locked by a transaction.
 
 You may find it helpful to define a <tt>LockManager</tt> class that is responsible for
-maintaining state about transactions and locks, but the design decision is up to
+maintaining(维持) state about transactions and locks, but the design decision is up to
 you.
 
 You may need to implement the next exercise before your code passes
@@ -170,7 +170,7 @@ code for the `Permissions` class.)
 Note that your implementation of `HeapFile.insertTuple()`
 and `HeapFile.deleteTuple()`, as well as the implementation
 of the iterator returned by `HeapFile.iterator()` should
-access pages using `BufferPool.getPage()`. Double check
+access(访问) pages using `BufferPool.getPage()`. Double check
 that these different uses of `getPage()` pass the
 correct permissions object (e.g., `Permissions.READ_WRITE`
 or `Permissions.READ_ONLY`). You may also wish to double
@@ -182,9 +182,9 @@ implemented this code in lab 2, but we did not test for this case.)
 
 After you have acquired locks, you will need to think about when to
 release them as well. It is clear that you should release all locks
-associated with a transaction after it has committed or aborted to ensure strict 2PL.
+associated with(有关系) a transaction after it has committed or aborted to ensure strict 2PL.
 However, it is
-possible for there to be other scenarios in which releasing a lock before
+possible for there to be other scenarios(情景) in which releasing a lock before
 a transaction ends might be useful. For instance, you may release a shared lock
 on a page after scanning it to find empty slots (as described below).
 
@@ -455,8 +455,8 @@ You can also post on the class page on Piazza if you feel you have run into a bu
   autograder score until you fix them. If this is an issue for you, contact us to discuss options.
   
 * Given that this lab deals with concurrency, we will rerun the autograder after the due date to discourage
-trying buggy code until lucky. It is your responsibility to ensure that your code **reliably** passes
-the tests.
+  trying buggy code until lucky. It is your responsibility to ensure that your code **reliably** passes
+  the tests.
   
 * This lab has a higher percentage of manual grading at 50% compared to previous labs. Specifically, we will be
 very unhappy if your concurrency handling is bogus (e.g., inserting Thread.sleep(1000) until a race disappears).
