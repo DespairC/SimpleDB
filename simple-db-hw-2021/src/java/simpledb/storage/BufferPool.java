@@ -242,6 +242,7 @@ public class BufferPool {
 
 
 
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -324,6 +325,7 @@ public class BufferPool {
             pageStore.put(pid, node);
             // 插入头节点
             addToHead(node);
+            return page;
         }
         // 移动到头部
         moveToHead(pageStore.get(pid));
@@ -406,7 +408,6 @@ public class BufferPool {
                 DbFile table = Database.getCatalog().getDatabaseFile(tableId);
                 // 读取当前的页面
                 Page pageFromDisk = table.readPage(pageId);
-
                 // 写回内存
                 node.page = pageFromDisk;
                 pageStore.put(pageId, node);
@@ -435,9 +436,9 @@ public class BufferPool {
         // some code goes here
         // not necessary for lab1
         // 获取 数据库文件 DBfile
-        HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(tableId);
         // 将页面刷新到缓存中
-        updateBufferPoll(heapFile.insertTuple(tid, t), tid);
+        updateBufferPoll(dbFile.insertTuple(tid, t), tid);
     }
 
     /**
@@ -453,14 +454,14 @@ public class BufferPool {
      * @param tid the transaction deleting the tuple.
      * @param t the tuple to delete
      */
-    public  void deleteTuple(TransactionId tid, Tuple t)
+    public void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
         // 查询所属表对应的文件
-        HeapFile heapFile = (HeapFile)Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
         // 将页面刷新到缓存中
-        updateBufferPoll(heapFile.deleteTuple(tid, t), tid);
+        updateBufferPoll(dbFile.deleteTuple(tid, t), tid);
     }
 
     /**
@@ -475,10 +476,24 @@ public class BufferPool {
             if(pageStore.size() > numPages){
                 evictPage();
             }
-            // 获取节点，此时的页一定已经在缓存了，因为刚刚被修改的时候就已经放入缓存了
-            LinkedNode node = pageStore.get(page.getId());
-            // 更新新的页内容
-            node.page = page;
+            // 如果缓存中有当前节点，更新
+            LinkedNode node;
+            if(pageStore.containsKey(page.getId())){
+                // 获取节点，此时的页一定已经在缓存了，因为刚刚被修改的时候就已经放入缓存了
+                node = pageStore.get(page.getId());
+                // 更新新的页内容
+                node.page = page;
+            }
+            // 如果没有当前节点，新建放入缓存
+            else{
+                // 是否超过大小
+                if(pageStore.size() >= numPages){
+                    // 使用 LRU 算法进行淘汰最近最久未使用
+                    evictPage();
+                }
+                node = new LinkedNode(page.getId(), page);
+                addToHead(node);
+            }
             // 更新到缓存
             pageStore.put(page.getId(), node);
         }
@@ -509,9 +524,11 @@ public class BufferPool {
         // some code goes here
         // not necessary for lab1
         // 删除使用记录
-        remove(pageStore.get(pid));
-        // 删除缓存
-        pageStore.remove(pid);
+        if(pageStore.containsKey(pid)){
+            remove(pageStore.get(pid));
+            // 删除缓存
+            pageStore.remove(pid);
+        }
     }
 
     /**
